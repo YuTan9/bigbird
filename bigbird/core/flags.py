@@ -179,69 +179,139 @@ flags.DEFINE_string(
     "How many steps to make in each estimator call.")
 
 
+
+
 def as_dictionary():
   """Get current config from flag."""
 
-  # Resolve vocab file location from hotword
-  if FLAGS.vocab_model_file == "gpt2":
-    FLAGS.vocab_model_file = str(importlib_resources.files(bigbird).joinpath(
-        "vocab/gpt2.model"))
-  elif FLAGS.vocab_model_file == "pegasus":
-    FLAGS.vocab_model_file = str(importlib_resources.files(bigbird).joinpath(
-        "vocab/pegasus.model"))
-
   config = {
-      # transformer basic configs
-      "attention_probs_dropout_prob": FLAGS.attention_probs_dropout_prob,
-      "hidden_act": FLAGS.hidden_act,
-      "hidden_dropout_prob": FLAGS.hidden_dropout_prob,
-      "hidden_size": FLAGS.hidden_size,
-      "initializer_range": FLAGS.initializer_range,
-      "intermediate_size": FLAGS.intermediate_size,
-      "max_position_embeddings": FLAGS.max_position_embeddings,
-      "num_attention_heads": FLAGS.num_attention_heads,
-      "num_hidden_layers": FLAGS.num_hidden_layers,
-      "type_vocab_size": FLAGS.type_vocab_size,
-      "scope": FLAGS.scope,
-      "use_bias": FLAGS.use_bias,
-      "rescale_embedding": FLAGS.rescale_embedding,
-      "use_gradient_checkpointing": FLAGS.use_gradient_checkpointing,
-      "vocab_model_file": FLAGS.vocab_model_file,
-      # sparse mask configs
-      "attention_type": FLAGS.attention_type,
-      "norm_type": FLAGS.norm_type,
-      "block_size": FLAGS.block_size,
-      "num_rand_blocks": FLAGS.num_rand_blocks,
-      # common bert configs
-      "data_dir": FLAGS.data_dir,
-      "output_dir": FLAGS.output_dir,
-      "init_checkpoint": FLAGS.init_checkpoint,
-      "max_encoder_length": FLAGS.max_encoder_length,
-      "substitute_newline": FLAGS.substitute_newline,
-      "do_train": FLAGS.do_train,
-      "do_eval": FLAGS.do_eval,
-      "do_export": FLAGS.do_export,
-      "train_batch_size": FLAGS.train_batch_size,
-      "eval_batch_size": FLAGS.eval_batch_size,
-      "optimizer": FLAGS.optimizer,
-      "learning_rate": FLAGS.learning_rate,
-      "num_train_steps": FLAGS.num_train_steps,
-      "num_warmup_steps": FLAGS.num_warmup_steps,
-      "save_checkpoints_steps": FLAGS.save_checkpoints_steps,
-      "weight_decay_rate": FLAGS.weight_decay_rate,
-      "optimizer_beta1": FLAGS.optimizer_beta1,
-      "optimizer_beta2": FLAGS.optimizer_beta2,
-      "optimizer_epsilon": FLAGS.optimizer_epsilon,
-      # TPU settings
-      "use_tpu": FLAGS.use_tpu,
-      "tpu_name": FLAGS.tpu_name,
-      "tpu_zone": FLAGS.tpu_zone,
-      "tpu_job_name": FLAGS.tpu_job_name,
-      "gcp_project": FLAGS.gcp_project,
-      "master": FLAGS.master,
-      "num_tpu_cores": FLAGS.num_tpu_cores,
-      "iterations_per_loop": FLAGS.iterations_per_loop,
+    # transformer basic configs
+    "attention_probs_dropout_prob": FLAGS.attention_probs_dropout_prob,
+    "hidden_act": FLAGS.hidden_act,
+    "hidden_dropout_prob": FLAGS.hidden_dropout_prob,
+    "hidden_size": FLAGS.hidden_size,
+    "initializer_range": FLAGS.initializer_range,
+    "intermediate_size": FLAGS.intermediate_size,
+    "max_position_embeddings": FLAGS.max_position_embeddings,
+    "num_attention_heads": FLAGS.num_attention_heads,
+    "num_hidden_layers": FLAGS.num_hidden_layers,
+    "type_vocab_size": FLAGS.type_vocab_size,
+    "scope": FLAGS.scope,
+    "use_bias": FLAGS.use_bias,
+    "rescale_embedding": FLAGS.rescale_embedding,
+    "use_gradient_checkpointing": FLAGS.use_gradient_checkpointing,
+    "src_vocab_model_file": FLAGS.src_vocab_model_file,
+    "tgt_vocab_model_file": FLAGS.tgt_vocab_model_file,
+    # sparse mask configs
+    "attention_type": FLAGS.attention_type,
+    "norm_type": FLAGS.norm_type,
+    "block_size": FLAGS.block_size,
+    "num_rand_blocks": FLAGS.num_rand_blocks,
+    # common bert configs
+    "data_dir": FLAGS.data_dir,
+    "output_dir": FLAGS.output_dir,
+    "init_checkpoint": FLAGS.init_checkpoint,
+    "max_encoder_length": FLAGS.max_encoder_length,
+    "substitute_newline": FLAGS.substitute_newline,
+    "do_train": FLAGS.do_train,
+    "do_eval": FLAGS.do_eval,
+    "do_export": FLAGS.do_export,
+    "train_batch_size": FLAGS.train_batch_size,
+    "eval_batch_size": FLAGS.eval_batch_size,
+    "optimizer": FLAGS.optimizer,
+    "learning_rate": FLAGS.learning_rate,
+    "num_train_steps": FLAGS.num_train_steps,
+    "num_warmup_steps": FLAGS.num_warmup_steps,
+    "save_checkpoints_steps": FLAGS.save_checkpoints_steps,
+    "weight_decay_rate": FLAGS.weight_decay_rate,
+    "optimizer_beta1": FLAGS.optimizer_beta1,
+    "optimizer_beta2": FLAGS.optimizer_beta2,
+    "optimizer_epsilon": FLAGS.optimizer_epsilon,
+    # TPU settings
+    "use_tpu": FLAGS.use_tpu,
+    "tpu_name": FLAGS.tpu_name,
+    "tpu_zone": FLAGS.tpu_zone,
+    "tpu_job_name": FLAGS.tpu_job_name,
+    "gcp_project": FLAGS.gcp_project,
+    "master": FLAGS.master,
+    "num_tpu_cores": FLAGS.num_tpu_cores,
+    "iterations_per_loop": FLAGS.iterations_per_loop,
   }
+  sp_model = spm.SentencePieceProcessor()
+  sp_proto = tf.io.gfile.GFile(config["src_vocab_model_file"], "rb").read()
+  sp_model.LoadFromSerializedProto(sp_proto)
+  vocab_size = sp_model.GetPieceSize()
+  config["src_vocab_size"] = vocab_size
+  sp_model = spm.SentencePieceProcessor()
+  sp_proto = tf.io.gfile.GFile(config["tgt_vocab_model_file"], "rb").read()
+  sp_model.LoadFromSerializedProto(sp_proto)
+  vocab_size = sp_model.GetPieceSize()
+  config["tgt_vocab_size"] = vocab_size
+  # Resolve vocab file location from hotword
+  # if FLAGS.vocab_model_file == "gpt2":
+  #   FLAGS.vocab_model_file = str(importlib_resources.files(bigbird).joinpath(
+  #       "vocab/gpt2.model"))
+  # elif FLAGS.vocab_model_file == "pegasus":
+  #   FLAGS.vocab_model_file = str(importlib_resources.files(bigbird).joinpath(
+  #       "vocab/pegasus.model"))
+  # config = {
+  #     # transformer basic configs
+  #     "attention_probs_dropout_prob": FLAGS.attention_probs_dropout_prob,
+  #     "hidden_act": FLAGS.hidden_act,
+  #     "hidden_dropout_prob": FLAGS.hidden_dropout_prob,
+  #     "hidden_size": FLAGS.hidden_size,
+  #     "initializer_range": FLAGS.initializer_range,
+  #     "intermediate_size": FLAGS.intermediate_size,
+  #     "max_position_embeddings": FLAGS.max_position_embeddings,
+  #     "num_attention_heads": FLAGS.num_attention_heads,
+  #     "num_hidden_layers": FLAGS.num_hidden_layers,
+  #     "type_vocab_size": FLAGS.type_vocab_size,
+  #     "scope": FLAGS.scope,
+  #     "use_bias": FLAGS.use_bias,
+  #     "rescale_embedding": FLAGS.rescale_embedding,
+  #     "use_gradient_checkpointing": FLAGS.use_gradient_checkpointing,
+  #     # "vocab_model_file": FLAGS.vocab_model_file,
+  #     # sparse mask configs
+  #     "attention_type": FLAGS.attention_type,
+  #     "norm_type": FLAGS.norm_type,
+  #     "block_size": FLAGS.block_size,
+  #     "num_rand_blocks": FLAGS.num_rand_blocks,
+  #     # common bert configs
+  #     "data_dir": FLAGS.data_dir,
+  #     "output_dir": FLAGS.output_dir,
+  #     "init_checkpoint": FLAGS.init_checkpoint,
+  #     "max_encoder_length": FLAGS.max_encoder_length,
+  #     "substitute_newline": FLAGS.substitute_newline,
+  #     "do_train": FLAGS.do_train,
+  #     "do_eval": FLAGS.do_eval,
+  #     "do_export": FLAGS.do_export,
+  #     "train_batch_size": FLAGS.train_batch_size,
+  #     "eval_batch_size": FLAGS.eval_batch_size,
+  #     "optimizer": FLAGS.optimizer,
+  #     "learning_rate": FLAGS.learning_rate,
+  #     "num_train_steps": FLAGS.num_train_steps,
+  #     "num_warmup_steps": FLAGS.num_warmup_steps,
+  #     "save_checkpoints_steps": FLAGS.save_checkpoints_steps,
+  #     "weight_decay_rate": FLAGS.weight_decay_rate,
+  #     "optimizer_beta1": FLAGS.optimizer_beta1,
+  #     "optimizer_beta2": FLAGS.optimizer_beta2,
+  #     "optimizer_epsilon": FLAGS.optimizer_epsilon,
+  #     # TPU settings
+  #     "use_tpu": FLAGS.use_tpu,
+  #     "tpu_name": FLAGS.tpu_name,
+  #     "tpu_zone": FLAGS.tpu_zone,
+  #     "tpu_job_name": FLAGS.tpu_job_name,
+  #     "gcp_project": FLAGS.gcp_project,
+  #     "master": FLAGS.master,
+  #     "num_tpu_cores": FLAGS.num_tpu_cores,
+  #     "iterations_per_loop": FLAGS.iterations_per_loop,
+  # }
+  # # calculate vocab
+  # sp_model = spm.SentencePieceProcessor()
+  # sp_proto = tf.io.gfile.GFile(config["vocab_model_file"], "rb").read()
+  # sp_model.LoadFromSerializedProto(sp_proto)
+  # vocab_size = sp_model.GetPieceSize()
+  # config["vocab_size"] = vocab_size
 
   # pretraining dedicated flags
   if hasattr(FLAGS, "max_predictions_per_seq"):
@@ -273,12 +343,7 @@ def as_dictionary():
   if hasattr(FLAGS, "label_smoothing"):
     config["label_smoothing"] = FLAGS.label_smoothing
 
-  # calculate vocab
-  sp_model = spm.SentencePieceProcessor()
-  sp_proto = tf.io.gfile.GFile(config["vocab_model_file"], "rb").read()
-  sp_model.LoadFromSerializedProto(sp_proto)
-  vocab_size = sp_model.GetPieceSize()
-  config["vocab_size"] = vocab_size
+  
 
   return config
 

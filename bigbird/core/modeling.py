@@ -202,7 +202,7 @@ class TransformerModel(tf.keras.layers.Layer):
 
     with tf.compat.v1.variable_scope(self.scope, reuse=tf.compat.v1.AUTO_REUSE):
       self.embeder = utils.EmbeddingLayer(
-          vocab_size=self.params["vocab_size"],
+          vocab_size=self.params["src_vocab_size"],
           emb_dim=self.params["hidden_size"],
           initializer=utils.create_initializer(
               self.params["initializer_range"]),
@@ -212,7 +212,9 @@ class TransformerModel(tf.keras.layers.Layer):
           use_position_embeddings=True,
           max_position_embeddings=self.params["max_position_embeddings"],
           dropout_prob=self.params["hidden_dropout_prob"])
+      self.params['vocab_size'] = self.params['src_vocab_size']
       self.encoder = encoder.EncoderStack(self.params)
+      self.params['vocab_size'] = self.params['tgt_vocab_size']
       self.decoder = decoder.DecoderStack(self.params)
 
   def _encode(self, input_ids, training=None):
@@ -398,7 +400,7 @@ class TransformerModel(tf.keras.layers.Layer):
         cache,
         batch_size,
         self.params["max_decoder_length"],
-        vocab_size=self.params["vocab_size"],
+        vocab_size=self.params["tgt_vocab_size"],
         beam_size=self.params["beam_size"],
         beam_start=5,
         beam_alpha=self.params["alpha"],
